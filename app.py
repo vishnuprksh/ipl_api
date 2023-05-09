@@ -2,18 +2,88 @@
 This is a Flask API that provides various routes to access the IPL dataset. The API uses the 'Flask' and 'jsonify' modules for response handling and 'request' module for HTTP request handling.
 """
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request,render_template,redirect, url_for,session
+from flask_mysqldb import MySQL
+import MySQLdb.cursors
+import re
 import ipl
+import config
 
 app = Flask(__name__)
 
-# Home Route
+
+app.secret_key = config.SECRET_KEY
+  
+app.config['MYSQL_HOST'] = config.MYSQL_HOST
+app.config['MYSQL_USER'] = config.MYSQL_USER
+app.config['MYSQL_PASSWORD'] = config.MYSQL_PASSWORD
+app.config['MYSQL_DB'] = config.MYSQL_DB
+
+mysql = MySQL(app)
+
+
+# Home/Login Route
 @app.route('/')
-def index():
-    """
-    This function returns a string as a response to the default route.
-    """
-    return "API development on IPL Dataset"
+@app.route('/login', methods =['GET', 'POST'])
+def login():
+    message = False
+    if request.method == 'POST' and 'email' in request.form and 'password' in request.form:
+        email = request.form['email']
+        password = request.form['password']
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM user WHERE email = %s AND password = %s', (email, password))
+        user = cursor.fetchone()
+        if user:
+            session['logged_in'] = True
+            session['user_id'] = user['user_id']
+            session['name'] = user['name']
+            session['email'] = user['email']
+            message = 'Logged in successfully !'
+            return render_template('404.html', message = message)
+        else:
+            message = True
+    return render_template('login.html', login_failed = message)
+
+
+# Logout
+@app.route('/logout')
+def logout():
+    session.pop('loggedin', None)
+    session.pop('userid', None)
+    session.pop('email', None)
+    return redirect(url_for('login'))
+
+
+# Register  
+@app.route('/register', methods =['GET', 'POST'])
+def register():
+    incomplete_form = False
+    if request.method == 'POST' and 'name' in request.form and 'password' in request.form and 'email' in request.form :
+        user_name = request.form['name']
+        password = request.form['password']
+        email = request.form['email']
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM user WHERE email = % s', (email, ))
+        account = cursor.fetchone()
+        email_expression = regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
+        if account:
+            account_already_exist = True
+            return render_template('register.html',account_already_exist=account_already_exist)
+        
+        elif not re.fullmatch(email_expression, email):
+            invalid_email = True
+            return render_template('register.html',invalid_email=invalid_email)
+        elif not user_name or not password or not email:
+            incomplete_form = True
+        else:
+            cursor.execute('INSERT INTO user VALUES (NULL, % s, % s, % s)', (user_name, email, password, ))
+            mysql.connection.commit()
+            register_success = True
+            return render_template('login.html',register_success=register_success)
+    elif request.method == 'POST':
+        incomplete_form = True
+    return render_template('register.html', incomplete_form=incomplete_form)
+
 
 # Route for teams that have played IPL so far
 @app.route('/api/teams-played-ipl')
@@ -74,6 +144,13 @@ def bowling_record():
     bowler = request.args.get('bowler')
     response = ipl.bowler_API(bowler)
     return response
+
+
+# Define the 404 error handler
+@app.errorhandler(404)
+def page_not_found(error):
+    # Render the 404 page
+    return render_template('404.html'), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
