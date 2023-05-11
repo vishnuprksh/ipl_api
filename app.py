@@ -252,7 +252,7 @@ mysql = MySQL(app)
 # Home/Login Route
 @app.route('/')
 @app.route('/login', methods=['GET', 'POST'])
-@handle_exceptions
+# @handle_exceptions
 def login():
     """
     - This function handles the login page route. It allows users to log in to the website
@@ -320,7 +320,7 @@ def logout():
 
 # Register Route
 @app.route('/register', methods=['GET', 'POST'])
-@handle_exceptions
+# @handle_exceptions
 def register():
     """
     This function handles the registration page route.
@@ -397,7 +397,7 @@ def register():
 
 # Route for teams that have played IPL so far
 @app.route('/api/teams-played-ipl')
-@handle_exceptions
+# @handle_exceptions
 def teams_played_ipl():
     """
     This function returns the list of teams that have played in the IPL so far.
@@ -412,7 +412,7 @@ def teams_played_ipl():
 
 # Route for track record of each team against each other
 @app.route('/api/team1-vs-team2')
-@handle_exceptions
+# @handle_exceptions
 def team1_vs_team2():
     """
     This function takes two team names as parameters
@@ -432,7 +432,7 @@ def team1_vs_team2():
 
 
 @app.route('/api/record-against-all-teams')
-@handle_exceptions
+# @handle_exceptions
 def team_all_records():
     """
     This function takes a team name as parameter and returns
@@ -451,7 +451,7 @@ def team_all_records():
 
 # Returns record of a team against each team
 @app.route('/api/record-against-each-team')
-@handle_exceptions
+# @handle_exceptions
 def team_api():
     """
     This function takes a team name as parameter and returns
@@ -469,7 +469,7 @@ def team_api():
 
 
 @app.route('/api/batsman-record')
-@handle_exceptions
+# @handle_exceptions
 def batsman_record():
     """
     This function takes a batsman name as parameter and
@@ -486,7 +486,7 @@ def batsman_record():
 
 # Returns complete bowling record
 @app.route('/api/bowling-record')
-@handle_exceptions
+# @handle_exceptions
 def bowling_record():
     """
     This function takes a bowler name as parameter and
@@ -501,13 +501,13 @@ def bowling_record():
 
 
 # Define the 404 error handler
-@app.errorhandler(404)
-def page_not_found():
+# @app.errorhandler(404)
+def page_not_found(error):
     """
     This function Renders the 404 page
     if the page asked does not exist.
     """
-    return render_template('404.html'), 404
+    return render_template('404.html',error=error), 404
 
 
 if __name__ == '__main__':
