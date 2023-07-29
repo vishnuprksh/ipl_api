@@ -103,3 +103,5 @@ Example usage: `http://localhost:5000/api/batsman-record?batsman=VK%20Kohli`
 Example usage: `http://localhost:5000/api/bowling-record?bowler=JJ%20Bumrah`
 
 Note: The examples above use `http://localhost:5000` as the base URL assuming the Flask application is running on the same machine.
+Run flask using 
+`flask run app.py`
