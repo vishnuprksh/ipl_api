@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Head to Head Comparison</h1>
+    
+    <div class="card shadow">
+        <div class="card-body">
+            <form id="head-to-head-form" class="mb-4">
+                <div class="form-row">
+                    <div class="form-group col-md-5">
+                        <label for="team1">Team 1</label>
+                        <select class="form-control" id="team1" required>
+                            <option value="">Select Team</option>
+                            {% for team in teams.teams %}
+                            <option value="{{ team }}">{{ team }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group col-md-2 d-flex align-items-center justify-content-center">
+                        <span class="h2">VS</span>
+                    </div>
+                    <div class="form-group col-md-5">
+                        <label for="team2">Team 2</label>
+                        <select class="form-control" id="team2" required>
+                            <option value="">Select Team</option>
+                            {% for team in teams.teams %}
+                            <option value="{{ team }}">{{ team }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button type="button" class="btn btn-primary" onclick="getHeadToHead()">Compare</button>
+                </div>
+            </form>
+            
+            <div id="results" class="d-none">
+                <h3 class="text-center mb-3">Results</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-header">
+                                <h5 class="card-title text-center mb-0" id="team1-name"></h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-center" id="team1-wins"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-header">
+                                <h5 class="card-title text-center mb-0" id="team2-name"></h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-center" id="team2-wins"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Match History Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col text-center">
+                                <h5>Total Matches</h5>
+                                <p id="total-matches" class="h3"></p>
+                            </div>
+                            <div class="col text-center">
+                                <h5>No Result</h5>
+                                <p id="no-result" class="h3"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="error-message" class="alert alert-danger mt-3 d-none"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getHeadToHead() {
+    const team1 = document.getElementById('team1').value;
+    const team2 = document.getElementById('team2').value;
+    
+    if (!team1 || !team2) {
+        alert('Please select both teams');
+        return;
+    }
+    
+    if (team1 === team2) {
+        alert('Please select different teams');
+        return;
+    }
+    
+    // Show loading indicator or message here
+    
+    fetch(`/api/team1-vs-team2?team1=${encodeURIComponent(team1)}&team2=${encodeURIComponent(team2)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('error-message').textContent = data.error;
+                document.getElementById('error-message').classList.remove('d-none');
+                document.getElementById('results').classList.add('d-none');
+                return;
+            }
+            
+            const result = data.result;
+            
+            // Display results
+            document.getElementById('team1-name').textContent = team1;
+            document.getElementById('team2-name').textContent = team2;
+            document.getElementById('team1-wins').textContent = `Wins: ${result.team1_won}`;
+            document.getElementById('team2-wins').textContent = `Wins: ${result.team2_won}`;
+            document.getElementById('total-matches').textContent = result.total_matches_played;
+            document.getElementById('no-result').textContent = result.no_result;
+            
+            // Show results div, hide error div
+            document.getElementById('results').classList.remove('d-none');
+            document.getElementById('error-message').classList.add('d-none');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('error-message').textContent = 'An error occurred while fetching data.';
+            document.getElementById('error-message').classList.remove('d-none');
+            document.getElementById('results').classList.add('d-none');
+        });
+}
+</script>
+{% endblock %}

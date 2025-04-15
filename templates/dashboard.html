@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}IPL Dashboard{% endblock %}
+
+{% block content %}
+<div class="ipl-dashboard">
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+      <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+        <img src="{{ url_for('static', filename='images/ipl-logo.png') }}" alt="IPL Logo" class="nav-logo">
+        IPL Stats Dashboard
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item active">
+            <a class="nav-link" href="{{ url_for('dashboard') }}">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('teams_dashboard') }}">Team Stats</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('players_dashboard') }}">Player Stats</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-6">
+          <h1>Welcome to IPL Stats Dashboard</h1>
+          <p>Explore comprehensive statistics from the Indian Premier League</p>
+          <p>Hello, {{ session.name }}! Discover insights about your favorite teams and players.</p>
+        </div>
+        <div class="col-lg-6 text-center">
+          <img src="{{ url_for('static', filename='images/cricket-hero.png') }}" alt="Cricket illustration" class="hero-image">
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="quick-access">
+    <div class="container">
+      <h2 class="section-title">Quick Access</h2>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="card feature-card">
+            <div class="card-body text-center">
+              <div class="feature-icon">
+                <i class="icon ion-trophy"></i>
+              </div>
+              <h3 class="card-title">Team Statistics</h3>
+              <p class="card-text">Compare teams, head-to-head records, and overall performance across IPL seasons.</p>
+              <a href="{{ url_for('teams_dashboard') }}" class="btn btn-primary">Explore Teams</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card feature-card">
+            <div class="card-body text-center">
+              <div class="feature-icon">
+                <i class="icon ion-person"></i>
+              </div>
+              <h3 class="card-title">Player Statistics</h3>
+              <p class="card-text">Dive into detailed batting and bowling stats of IPL players across seasons.</p>
+              <a href="{{ url_for('players_dashboard') }}" class="btn btn-primary">Explore Players</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card feature-card">
+            <div class="card-body text-center">
+              <div class="feature-icon">
+                <i class="icon ion-podium"></i>
+              </div>
+              <h3 class="card-title">Head to Head</h3>
+              <p class="card-text">Compare any two teams and see their complete head-to-head statistics.</p>
+              <a href="{{ url_for('head_to_head') }}" class="btn btn-primary">Compare Teams</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

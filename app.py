@@ -200,6 +200,10 @@ def handle_exceptions(function):
         None.
     """
     def wrapper(*args, **kwargs):
+        result = None  # Initialize result to avoid UnboundLocalError
+        error = None   # Initialize error to avoid UnboundLocalError
+        status_code = 200
+        
         try:
             result = function(*args, **kwargs)
         except MySQLException as exception:
@@ -214,9 +218,6 @@ def handle_exceptions(function):
         except Exception as exception:
             status_code = 500
             error = str(exception)
-        else:
-            status_code = 200
-            error = None
 
         return jsonify(result=result, error=error), status_code
 
@@ -258,7 +259,8 @@ def login():
                 session['email'] = user.email
                 session['logged_in'] = True
 
-                return session['name'] + " Bhai tu login hogya"
+                # Redirect to dashboard after successful login
+                return redirect(url_for('dashboard'))
             # If no user is found, set login_failed to True to display an error message
             login_failed = True
 
@@ -452,5 +454,60 @@ def page_not_found(error):
     return render_template('404.html',error=error), 404
 
 
+# Dashboard routes
+@app.route('/dashboard')
+def dashboard():
+    """
+    This function renders the main dashboard page.
+    It's accessible only to logged-in users.
+    """
+    # Check if user is logged in
+    if 'user_id' in session:
+        return render_template('dashboard.html')
+    # Redirect to login page if user is not logged in
+    return redirect(url_for('login'))
+
+
+@app.route('/teams_dashboard')
+def teams_dashboard():
+    """
+    This function renders the teams statistics dashboard.
+    It's accessible only to logged-in users.
+    """
+    # Check if user is logged in
+    if 'user_id' in session:
+        teams = ipl.teams_played_ipl()
+        return render_template('teams_dashboard.html', teams=teams)
+    # Redirect to login page if user is not logged in
+    return redirect(url_for('login'))
+
+
+@app.route('/players_dashboard')
+def players_dashboard():
+    """
+    This function renders the players statistics dashboard.
+    It's accessible only to logged-in users.
+    """
+    # Check if user is logged in
+    if 'user_id' in session:
+        return render_template('players_dashboard.html')
+    # Redirect to login page if user is not logged in
+    return redirect(url_for('login'))
+
+
+@app.route('/head_to_head')
+def head_to_head():
+    """
+    This function renders the head to head comparison page for teams.
+    It's accessible only to logged-in users.
+    """
+    # Check if user is logged in
+    if 'user_id' in session:
+        teams = ipl.teams_played_ipl()
+        return render_template('head_to_head.html', teams=teams)
+    # Redirect to login page if user is not logged in
+    return redirect(url_for('login'))
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=True)
