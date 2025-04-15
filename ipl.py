@@ -456,9 +456,9 @@ def bowler_run(tup_x):
         bowler_run(('wides', 1))  # Returns 1
         bowler_run(('byes', 2))  # Returns 0
     """
-    if tup_x[0] in ['penalty', 'legbyes', 'byes']:
+    if tup_x.iloc[0] in ['penalty', 'legbyes', 'byes']:
         return 0
-    return tup_x[1]
+    return tup_x.iloc[1]
 
 
 bowler_data['bowler_run'] = bowler_data[[
@@ -482,8 +482,8 @@ def bowler_wicket(tup_x):
         bowler_wicket(('caught', 1))  # Returns 1
         bowler_wicket(('run out', 0))  # Returns 0
     """
-    if tup_x[0] in ['caught', 'caught and bowled', 'bowled', 'stumped', 'lbw', 'hit wicket']:
-        return tup_x[1]
+    if tup_x.iloc[0] in ['caught', 'caught and bowled', 'bowled', 'stumped', 'lbw', 'hit wicket']:
+        return tup_x.iloc[1]
     return 0
 
 

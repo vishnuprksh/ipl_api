@@ -18,50 +18,15 @@ Routes:
     the complete batting record of the batsman.
 - '/api/bowling-record': Takes a bowler name as a parameter and
     returns the complete bowling record of the bowler.
-
-Functions:
-----------
-- login(): Handles the login page route. Verifies user credentials and
-    stores user details in a session upon successful login.
-- logout(): Clears the user's session data and redirects them to the login page.
-- register(): Handles the registration page route.
-    Validates user input, checks email availability, and registers the user.
-- teams_played_ipl(): Returns the list of teams that have played in the IPL.
-- team1_vs_team2(): Returns the track record of two teams against each other.
-- team_all_records(): Returns a team's record against all the teams it has played against.
-- team_API(): Returns a team's record against each team it has played against.
-- batsman_record(): Returns the complete batting record of a batsman.
-- bowling_record(): Returns the complete bowling record of a bowler.
-- page_not_found(error): Custom 404 error handler.
-
-Dependencies:
--------------
-The code imports several dependencies:
-
-- Flask: A micro web framework used to develop web applications in Python.
-- jsonify: A Flask function that converts Python dictionary objects to JSON format.
-- request: A Flask object that represents the HTTP request sent by a client.
-- render_template: A Flask function that allows the application to render HTML templates.
-- redirect: A Flask function that redirects the client to a different endpoint.
-- url_for: A Flask function that generates URLs for the application's endpoints.
-- session: A Flask object that represents a user session,
-    allowing data to be stored across requests.
-- Flask-MySQLdb: A Flask extension that allows the application to interact with a MySQL database.
-- MySQLdb.cursors: A Python module that provides an interface for working with
-    cursors in MySQL databases.
-- passlib.hash: A Python library that provides password hashing and verification functionality.
-- ipl: A custom module that contains functions for processing Indian Premier League (IPL) data.
-- config: A module that contains configuration settings for the application.
-- utils: A module that contains utility functions used throughout the application.
 """
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, session
-from flask_mysqldb import MySQL
-import MySQLdb.cursors
+from flask_sqlalchemy import SQLAlchemy
 from passlib.hash import sha256_crypt
 import ipl
 import config
 import utils
+import os
 
 # ***************************************************************
 
@@ -70,6 +35,26 @@ app = Flask(__name__)
 
 # Set the secret key for the application
 app.secret_key = config.SECRET_KEY
+
+# Configure the SQLite database
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{config.SQLITE_DB_PATH}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize the SQLAlchemy instance
+db = SQLAlchemy(app)
+
+# Define the User model
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+
+# Create the database tables
+with app.app_context():
+    # Check if the database file exists
+    if not os.path.exists(config.SQLITE_DB_PATH):
+        db.create_all()
 
 # ***************************************************************
 
@@ -226,6 +211,9 @@ def handle_exceptions(function):
         except MissingBackendError as exception:
             status_code = 500
             error = str(exception)
+        except Exception as exception:
+            status_code = 500
+            error = str(exception)
         else:
             status_code = 200
             error = None
@@ -238,21 +226,9 @@ def handle_exceptions(function):
 
 # ***************************************************************
 
-# Configure the MySQL database connection settings for the application
-app.config['MYSQL_HOST'] = config.MYSQL_HOST
-app.config['MYSQL_USER'] = config.MYSQL_USER
-app.config['MYSQL_PASSWORD'] = config.MYSQL_PASSWORD
-app.config['MYSQL_DB'] = config.MYSQL_DB
-
-# Create a MySQLdb connection object using the Flask-MySQLdb extension
-mysql = MySQL(app)
-
-# ***************************************************************
-
 # Home/Login Route
 @app.route('/')
 @app.route('/login', methods=['GET', 'POST'])
-# @handle_exceptions
 def login():
     """
     - This function handles the login page route. It allows users to log in to the website
@@ -271,33 +247,24 @@ def login():
         email = request.form['email']
         password = request.form['password']
         try:
-            # Connect to the database
-            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
             # Get the user from the database
-            cursor.execute('SELECT * FROM user WHERE email = %s', (email,))
-            user = cursor.fetchone()
-            # Close the database connection
-            cursor.close()
+            user = User.query.filter_by(email=email).first()
 
             # If a user is found and the password matches
-            if user and sha256_crypt.verify(password, user['password']):
+            if user and sha256_crypt.verify(password, user.password):
                 # store their details in a session
-                session['user_id'] = user['user_id']
-                session['name'] = user['name']
-                session['email'] = user['email']
+                session['user_id'] = user.id
+                session['name'] = user.name
+                session['email'] = user.email
                 session['logged_in'] = True
-                # message = 'Logged in successfully !'
 
-                # redirect to the 404 page with a success message
-                # return render_template('404.html', message=message)
-                return session['name'] + "Bhai tu login hogya"
+                return session['name'] + " Bhai tu login hogya"
             # If no user is found, set login_failed to True to display an error message
-            # on the login page
             login_failed = True
 
         except Exception as exc:
-            raise MySQLException() from exc
+            login_failed = True
+            print(f"Login error: {str(exc)}")
 
     # Render the login page template with the login_failed variable set to message
     return render_template('login.html', login_failed=login_failed)
@@ -310,9 +277,7 @@ def logout():
     This route clears the user's session data and redirects them to the login page.
     """
     # Clear the user's session data
-    session.pop('loggedin', None)
-    session.pop('userid', None)
-    session.pop('email', None)
+    session.clear()
 
     # Redirect the user to the login page
     return redirect(url_for('login'))
@@ -320,19 +285,11 @@ def logout():
 
 # Register Route
 @app.route('/register', methods=['GET', 'POST'])
-# @handle_exceptions
 def register():
     """
     This function handles the registration page route.
     It allows users to register on the website by providing their name,
-    email, and password. If the user's email is not already registered and 
-    is in the correct email format, the user's details
-    are stored in the database and the user is redirected to the login page 
-    with a success message. If the email is already
-    registered, an error message is displayed on the registration page. 
-    If the email is not in the correct format or the 
-    registration form is incomplete, an appropriate error message is 
-    displayed on the registration page.
+    email, and password.
     """
     incomplete_form = False
     # Check if the request method is POST and if the name, password and
@@ -340,64 +297,58 @@ def register():
     if (request.method == 'POST' and
         'name' in request.form and
         'password' in request.form and
-            'email' in request.form):
+        'email' in request.form):
 
         user_name = request.form['name']
         password = request.form['password']
         email = request.form['email']
 
         try:
-            # Encrypt the password
-            hashed_password = sha256_crypt.encrypt(password)
-            # Connect to the database and execute a SELECT query to check if
-            # the email is already registered
-            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-            cursor.execute('SELECT * FROM user WHERE email = %s', (email, ))
-            account = cursor.fetchone()
-
+            # Check if email already exists
+            existing_user = User.query.filter_by(email=email).first()
+            
             # If the email is already registered, display an error message on the registration page
-            if account:
+            if existing_user:
                 account_already_exist = True
                 return render_template('register.html', account_already_exist=account_already_exist)
 
-            # If the email is not in the correct format, display an error
-            # message on the registration page
+            # If the email is not in the correct format, display an error message
             if not utils.check_correct_email_format(email):
                 invalid_email = True
                 return render_template('register.html', invalid_email=invalid_email)
 
-            # If the registration form is incomplete, display an error
-            # message on the registration page
+            # If the registration form is incomplete, display an error message
             if not user_name or not password or not email:
                 incomplete_form = True
+                return render_template('register.html', incomplete_form=incomplete_form)
 
-            # If the email is not already registered, is in the correct format
-            # and the registration form is complete,
-            # store the user's details in the database and redirect to the
-            # login page with a success message
-            else:
-                cursor.execute('INSERT INTO user VALUES (NULL, %s, %s, %s)',
-                               (user_name, email, hashed_password,))
-                mysql.connection.commit()
-                register_success = True
-                return render_template('login.html', register_success=register_success)
+            # Hash the password
+            hashed_password = sha256_crypt.hash(password)
+            
+            # Create a new user
+            new_user = User(name=user_name, email=email, password=hashed_password)
+            db.session.add(new_user)
+            db.session.commit()
+            
+            # Registration successful
+            register_success = True
+            return render_template('login.html', register_success=register_success)
 
-        except Exception as exc:
-            raise MySQLException() from exc
+        except Exception as e:
+            db.session.rollback()
+            return render_template('register.html', error=str(e))
 
-    # If the request method is POST but the name, password
-    # and email fields are not present in the request form,
-    # display an error message on the registration page
+    # If the request method is POST but the form is incomplete
     elif request.method == 'POST':
         incomplete_form = True
 
-    # Render the registration page template with the appropriate error messages
+    # Render the registration page template
     return render_template('register.html', incomplete_form=incomplete_form)
 
 
 # Route for teams that have played IPL so far
 @app.route('/api/teams-played-ipl')
-# @handle_exceptions
+@handle_exceptions
 def teams_played_ipl():
     """
     This function returns the list of teams that have played in the IPL so far.
@@ -405,53 +356,48 @@ def teams_played_ipl():
     # Check if the user is logged in
     if 'user_id' in session:
         response = ipl.teams_played_ipl()
-        return jsonify(response)
+        return response
     # Redirect to the login page if the user is not logged in
     return redirect(url_for('login'))
 
 
 # Route for track record of each team against each other
 @app.route('/api/team1-vs-team2')
-# @handle_exceptions
+@handle_exceptions
 def team1_vs_team2():
     """
     This function takes two team names as parameters
     and returns their track record against each other.
     """
-
     # Check if the user is logged in
     if 'user_id' in session:
         team1 = request.args.get('team1')
         team2 = request.args.get('team2')
         response = ipl.team1_vs_team2(team1, team2)
-        return jsonify(response)
+        return response
     # Redirect to the login page if the user is not logged in
     return redirect(url_for('login'))
 
 # Returns record of a team against all teams
-
-
 @app.route('/api/record-against-all-teams')
-# @handle_exceptions
+@handle_exceptions
 def team_all_records():
     """
     This function takes a team name as parameter and returns
     its record against all the teams that it has played against.
     """
-
     # Check if the user is logged in
     if 'user_id' in session:
         team = request.args.get('team')
         response = ipl.all_record(team)
-        return jsonify(response)
-
+        return response
     # Redirect to the login page if the user is not logged in
     return redirect(url_for('login'))
 
 
 # Returns record of a team against each team
 @app.route('/api/record-against-each-team')
-# @handle_exceptions
+@handle_exceptions
 def team_api():
     """
     This function takes a team name as parameter and returns
@@ -461,15 +407,12 @@ def team_api():
         team = request.args.get('team')
         response = ipl.team_api(team)
         return response
-
     # Redirect to the login page if the user is not logged in
     return redirect(url_for('login'))
 
 # Returns complete batsman record
-
-
 @app.route('/api/batsman-record')
-# @handle_exceptions
+@handle_exceptions
 def batsman_record():
     """
     This function takes a batsman name as parameter and
@@ -479,14 +422,13 @@ def batsman_record():
         batsman = request.args.get('batsman')
         response = ipl.batsman_api(batsman)
         return response
-
     # Redirect to the login page if the user is not logged in
     return redirect(url_for('login'))
 
 
 # Returns complete bowling record
 @app.route('/api/bowling-record')
-# @handle_exceptions
+@handle_exceptions
 def bowling_record():
     """
     This function takes a bowler name as parameter and
@@ -501,7 +443,7 @@ def bowling_record():
 
 
 # Define the 404 error handler
-# @app.errorhandler(404)
+@app.errorhandler(404)
 def page_not_found(error):
     """
     This function Renders the 404 page
