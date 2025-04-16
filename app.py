@@ -27,6 +27,7 @@ import ipl
 import config
 import utils
 import os
+import json
 
 # ***************************************************************
 
@@ -407,9 +408,11 @@ def team_api():
     """
     if 'user_id' in session:
         team = request.args.get('team')
-        response = ipl.team_api(team)
-        return response
-    # Redirect to the login page if the user is not logged in
+        json_response = ipl.team_api(team)
+        # Parse the JSON string to a Python dictionary before returning
+        parsed_response = json.loads(json_response)
+        return parsed_response
+    # Redirect to login page if user is not logged in
     return redirect(url_for('login'))
 
 # Returns complete batsman record
