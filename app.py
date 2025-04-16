@@ -41,6 +41,12 @@ app.secret_key = config.SECRET_KEY
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{config.SQLITE_DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Add template context processor for current year
+@app.context_processor
+def inject_current_year():
+    from datetime import datetime
+    return {'current_year': datetime.now().year}
+
 # Initialize the SQLAlchemy instance
 db = SQLAlchemy(app)
 

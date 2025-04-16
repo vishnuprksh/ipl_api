@@ -1,49 +1,74 @@
 {% extends "base.html" %}
 
-{% block title %} Register IPL API{% endblock %}
+{% block title %} Register - IPL Stats Dashboard {% endblock %}
 
 {% block content %}
+<div class="login-dark">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <form action="/register" method="post" class="animated fadeIn">
+          {% if invalid_email %}
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle mr-2"></i> Invalid Email
+          </div>
+          {% endif %}
+          
+          {% if account_already_exist %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle mr-2"></i> Account already exists!
+            <a href="/login" class="alert-link">Login here</a>
+          </div>
+          {% endif %}
+          
+          {% if incomplete_form %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle mr-2"></i> Please fill out the form completely
+          </div>
+          {% endif %}
+          
+          <h2 class="text-center mb-4">Create Account</h2>
+          <div class="illustration">
+            <img src="{{ url_for('static', filename='images/ipl-logo.png') }}" alt="IPL Logo" height="80">
+          </div>
 
+          <div class="form-group">
+            <label><i class="fas fa-user mr-2"></i>Name</label>
+            <input class="form-control" type="text" name="name" placeholder="Enter your full name" required />
+          </div>
 
-<body>
-  <div class="login-dark">
-    <form action="/register" method="post">
-      {% if invalid_email %}
-      <h6 class="text-center text-danger">Invalid Email</h6>
-      {% endif %}
-      {% if account_already_exist %}
-      <a href="/login" class='link-warning text-center'><h6>Account already exist! Login</h6></a>
-      {% endif %}
-      {% if incomplete_form %}
-      <h6 class="text-center text-bg-warning">Please fill out the form !</h6>
-      {% endif %}
-      
-      <br />
-      <h2 class="text-center">Register</h2>
-      <div class="illustration">
-        <i class="icon ion-ios-locked-outline"></i>
+          <div class="form-group">
+            <label><i class="fas fa-envelope mr-2"></i>Email</label>
+            <input class="form-control" type="email" name="email" placeholder="Enter your email" required />
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-lock mr-2"></i>Password</label>
+            <input class="form-control" type="password" name="password" placeholder="Choose a password" required />
+          </div>
+
+          <div class="form-group">
+            <button class="btn btn-primary btn-block" type="submit">
+              <i class="fas fa-user-plus mr-2"></i> Register
+            </button>
+          </div>
+
+          <a href="/login" class="forgot">
+            Already have an account? <span>Login here</span>
+          </a>
+        </form>
       </div>
-
-      <div class="form-group">
-        <input class="form-control" type="text" name="name" placeholder="Name" required />
-      </div>
-
-      <div class="form-group">
-        <input class="form-control" type="email" name="email" placeholder="Email" required />
-      </div>
-
-      <div class="form-group">
-        <input class="form-control" type="password" name="password" placeholder="Password" required />
-      </div>
-
-      <div class="form-group">
-        <button class="btn btn-primary btn-block" type="submit">
-          Register
-        </button>
-      </div>
-
-      <a href="/login" class="forgot">Already Registered? Login</a>
-    </form>
+    </div>
   </div>
-</body>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Simple form animation
+    const form = document.querySelector('form');
+    form.classList.add('show');
+  });
+</script>
 {% endblock %}

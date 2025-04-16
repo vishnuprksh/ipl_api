@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}IPL Dashboard{% endblock %}
+{% block title %}IPL Stats Dashboard{% endblock %}
 
 {% block content %}
 <div class="ipl-dashboard">
+  <!-- Navigation Bar -->
   <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container">
       <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+        <img src="{{ url_for('static', filename='images/ipl-logo.png') }}" alt="IPL Logo" class="mr-2">
         IPL Stats Dashboard
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -15,71 +17,149 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ml-auto">
           <li class="nav-item active">
-            <a class="nav-link" href="{{ url_for('dashboard') }}">Home</a>
+            <a class="nav-link" href="{{ url_for('dashboard') }}">
+              <i class="fas fa-home mr-1"></i> Home
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('teams_dashboard') }}">Team Stats</a>
+            <a class="nav-link" href="{{ url_for('teams_dashboard') }}">
+              <i class="fas fa-users mr-1"></i> Team Stats
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('players_dashboard') }}">Player Stats</a>
+            <a class="nav-link" href="{{ url_for('players_dashboard') }}">
+              <i class="fas fa-user-circle mr-1"></i> Player Stats
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            <a class="nav-link" href="{{ url_for('logout') }}">
+              <i class="fas fa-sign-out-alt mr-1"></i> Logout
+            </a>
           </li>
         </ul>
       </div>
     </div>
   </nav>
 
+  <!-- Hero Section -->
   <header class="hero">
     <div class="container">
-      <div class="row align-items-center">
-        <div class="col-lg-12">
-          <h1>Welcome to IPL Stats Dashboard</h1>
-          <p>Explore comprehensive statistics from the Indian Premier League</p>
-          <p>Hello, {{ session.name }}! Discover insights about your favorite teams and players.</p>
+      <div class="row">
+        <div class="col-lg-12 text-center">
+          <h1 class="animated fadeInDown">Welcome to IPL Stats Dashboard</h1>
+          <p class="lead animated fadeInUp">Explore comprehensive statistics from the Indian Premier League</p>
+          <div class="user-greeting animated fadeIn">
+            <div class="user-avatar">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            <p>Hello, <span class="font-weight-bold">{{ session.name }}</span>! Discover insights about your favorite teams and players.</p>
+          </div>
         </div>
       </div>
     </div>
   </header>
 
+  <!-- Quick Access Section -->
   <section class="quick-access">
     <div class="container">
       <h2 class="section-title">Quick Access</h2>
       <div class="row">
         <div class="col-md-4">
-          <div class="card feature-card">
+          <div class="card feature-card h-100">
             <div class="card-body text-center">
               <div class="feature-icon">
-                <i class="icon ion-trophy"></i>
+                <i class="fas fa-trophy"></i>
               </div>
               <h3 class="card-title">Team Statistics</h3>
               <p class="card-text">Compare teams, head-to-head records, and overall performance across IPL seasons.</p>
-              <a href="{{ url_for('teams_dashboard') }}" class="btn btn-primary">Explore Teams</a>
+              <a href="{{ url_for('teams_dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-chart-bar mr-1"></i> Explore Teams
+              </a>
             </div>
           </div>
         </div>
         <div class="col-md-4">
-          <div class="card feature-card">
+          <div class="card feature-card h-100">
             <div class="card-body text-center">
               <div class="feature-icon">
-                <i class="icon ion-person"></i>
+                <i class="fas fa-user"></i>
               </div>
               <h3 class="card-title">Player Statistics</h3>
               <p class="card-text">Dive into detailed batting and bowling stats of IPL players across seasons.</p>
-              <a href="{{ url_for('players_dashboard') }}" class="btn btn-primary">Explore Players</a>
+              <a href="{{ url_for('players_dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-user-chart mr-1"></i> Explore Players
+              </a>
             </div>
           </div>
         </div>
         <div class="col-md-4">
-          <div class="card feature-card">
+          <div class="card feature-card h-100">
             <div class="card-body text-center">
               <div class="feature-icon">
-                <i class="icon ion-podium"></i>
+                <i class="fas fa-exchange-alt"></i>
               </div>
               <h3 class="card-title">Head to Head</h3>
               <p class="card-text">Compare any two teams and see their complete head-to-head statistics.</p>
-              <a href="{{ url_for('head_to_head') }}" class="btn btn-primary">Compare Teams</a>
+              <a href="{{ url_for('head_to_head') }}" class="btn btn-primary">
+                <i class="fas fa-balance-scale mr-1"></i> Compare Teams
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- IPL Highlights Section -->
+  <section class="highlights py-5 bg-light">
+    <div class="container">
+      <h2 class="section-title">IPL Highlights</h2>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h4><i class="fas fa-chart-line mr-2"></i>IPL Records</h4>
+            </div>
+            <div class="card-body">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  Highest Team Score
+                  <span class="badge badge-primary badge-pill">263/5 by RCB</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  Highest Individual Score
+                  <span class="badge badge-primary badge-pill">175* by Chris Gayle</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  Most IPL Titles
+                  <span class="badge badge-primary badge-pill">Mumbai Indians (5)</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h4><i class="fas fa-calendar-alt mr-2"></i>Latest Updates</h4>
+            </div>
+            <div class="card-body">
+              <div class="timeline">
+                <div class="timeline-item">
+                  <div class="timeline-date">April 2025</div>
+                  <div class="timeline-content">
+                    <h5>IPL 2025 Season Underway</h5>
+                    <p>The latest IPL season has started with exciting matches and unexpected results.</p>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-date">March 2025</div>
+                  <div class="timeline-content">
+                    <h5>Stats Database Updated</h5>
+                    <p>Our database has been updated with the latest player transfers and team changes.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -87,4 +167,28 @@
     </div>
   </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add animated class to elements as they come into view
+    function animateOnScroll() {
+      const elements = document.querySelectorAll('.card, .section-title');
+      
+      elements.forEach(element => {
+        const position = element.getBoundingClientRect();
+        
+        // If element is in viewport
+        if(position.top < window.innerHeight && position.bottom >= 0) {
+          element.classList.add('animated', 'fadeIn');
+        }
+      });
+    }
+    
+    // Initial call and on scroll
+    animateOnScroll();
+    window.addEventListener('scroll', animateOnScroll);
+  });
+</script>
 {% endblock %}

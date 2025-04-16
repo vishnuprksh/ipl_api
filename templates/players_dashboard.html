@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Player Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h1 class="mb-4">IPL Player Statistics</h1>
+  <p class="lead">Explore detailed batting and bowling stats of IPL players across all seasons.</p>
+  <!-- Example table, replace with dynamic content as needed -->
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Player Name</th>
+        <th>Team</th>
+        <th>Matches</th>
+        <th>Runs</th>
+        <th>Wickets</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Example row -->
+      <tr>
+        <td>Virat Kohli</td>
+        <td>RCB</td>
+        <td>223</td>
+        <td>7263</td>
+        <td>4</td>
+      </tr>
+      <!-- Add more rows dynamically -->
+    </tbody>
+  </table>
+</div>
+{% endblock %}
