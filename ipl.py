@@ -49,6 +49,7 @@ Usage Example:
 import json
 import pandas as pd
 import numpy as np
+import math
 
 # Importing Datasets
 matches = pd.read_csv('datasets/ipl.csv')
@@ -58,31 +59,15 @@ balls = pd.read_csv('datasets/IPL_bowling_stats.csv')
 class NpEncoder(json.JSONEncoder):
     """
     Custom JSON encoder that extends the functionality of the
-    default JSONEncoder to handle NumPy data types.
+    default JSONEncoder to handle NumPy data types and special numeric values.
 
     This class is designed to be used as an encoder when converting NumPy objects to JSON format.
 
-    The encoder handles the following NumPy types:
-    - np.integer: Converted to int.
-    - np.floating: Converted to float.
-    - np.ndarray: Converted to a Python list.
-
-    All other types are handled by the default JSONEncoder.
-
-    Usage example:
-    ```
-    import json
-    import numpy as np
-
-    # Create an instance of the NpEncoder
-    encoder = NpEncoder()
-
-    # Convert a NumPy object to JSON using the custom encoder
-    data = np.array([1, 2, 3])
-    json_data = json.dumps(data, cls=encoder)
-    ```
-
-    Reference: https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number
+    The encoder handles:
+    - np.integer: Converted to int
+    - np.floating: Converted to float
+    - np.ndarray: Converted to a Python list
+    - Special values (inf, -inf): Converted to null
     """
 
     def default(self, o):
@@ -101,9 +86,16 @@ class NpEncoder(json.JSONEncoder):
         if isinstance(o, np.integer):
             return int(o)
         if isinstance(o, np.floating):
+            if np.isinf(o) or np.isnan(o):
+                return None
             return float(o)
         if isinstance(o, np.ndarray):
             return o.tolist()
+        # Handle Python's built-in float infinity
+        if isinstance(o, float):
+            if math.isinf(o) or math.isnan(o):
+                return None
+            return o
         return super(NpEncoder, self).default(o)
 
 
@@ -249,77 +241,59 @@ def team_api(team, match=matches):
 def batsman_record(batsman, data_frame):
     """
     Compute statistics for a given batsman based on the provided dataframe of cricket matches.
-
-    Args:
-        batsman: A string with the name of the batsman to compute statistics for.
-        df: A pandas DataFrame with columns 
-            'ID', 'batsman', 'player_out', 'batsman_run', 'non_boundary', and 'extra_type',
-            containing the records of all batsmen in all cricket matches.
-
-    Returns:
-        A dictionary with the following keys:
-        - 'out': An integer with the number of times the batsman got out.
-        - 'innings': An integer with the number of innings the batsman played.
-        - 'runs': An integer with the total runs scored by the batsman.
-        - 'fours': An integer with the number of fours scored by the batsman.
-        - 'sixes': An integer with the number of sixes scored by the batsman.
-        - 'average': A float with the batting average of the batsman 
-            (runs/out), or infinity if out=0.
-        - 'strike_rate': A float with the batting strike
-            rate of the batsman (runs/balls*100), or 0 if balls=0.
-        - 'fifties': An integer with the number of half-centuries scored by the batsman.
-        - 'hundreds': An integer with the number of centuries scored by the batsman.
-        - 'highest_score': A string with the highest score of the batsman in a
-            single innings, followed by a '*' if
-          the batsman was not out in that innings, or the highest score
-          if the player was out in every innings.
     """
     if data_frame.empty:
         return pd.NaT
 
-    # Get the number of innings played.
+    # Filter data for this specific batsman
+    data_frame = data_frame[data_frame['batter'] == batsman]
+
+    # Get the number of innings played
     inngs = data_frame.ID.unique().shape[0]
 
-    # Get the number of runs scored.
+    # Get the number of runs scored
     runs = data_frame.batsman_run.sum()
+    
+    # Get number of balls faced (excluding extras)
+    balls = data_frame[~data_frame.extra_type.isin(['wides', 'noballs'])].shape[0]
+    
+    # Get number of dismissals
+    dismissals = data_frame[data_frame.player_out == batsman].shape[0]
 
-    # Get the number of fours and sixes hit.
+    # Get the batting average (runs/dismissals)
+    if dismissals:
+        avg = runs / dismissals
+    else:
+        avg = None  # Not out, no average
+
+    # Get the strike rate (runs/balls * 100)
+    if balls:
+        strike_rate = (runs / balls) * 100
+    else:
+        strike_rate = None
+
+    # Get the number of fours and sixes hit
     fours = data_frame[(data_frame.batsman_run == 4) & (
         data_frame.non_boundary == 0)].shape[0]
     sixes = data_frame[(data_frame.batsman_run == 6) & (
         data_frame.non_boundary == 0)].shape[0]
 
-    # Get the batting average.
-    if inngs:
-        avg = runs / inngs
-    else:
-        avg = pd.NaT
+    # Get the highest score per innings and count fifties/hundreds
+    innings_runs = data_frame.groupby('ID')['batsman_run'].sum()
+    fifties = ((innings_runs >= 50) & (innings_runs < 100)).sum()
+    hundreds = (innings_runs >= 100).sum()
+    highest_score = innings_runs.max() if not innings_runs.empty else 0
 
-    # Get the strike rate.
-    if inngs:
-        strike_rate = runs / inngs * 100
-    else:
-        strike_rate = pd.NaT
+    # Get the number of not outs
+    not_out = inngs - dismissals
 
-    # Get the number of half-centuries and centuries scored.
-    fifties = data_frame[(data_frame.batsman_run >= 50) &
-                         (data_frame.batsman_run < 100)].shape[0]
-    hundreds = data_frame[data_frame.batsman_run >= 100].shape[0]
-
-    # Get the highest score.
-    highest_score = data_frame.batsman_run.sort_values(
-        ascending=False).head(1).values[0]
-
-    # Get the number of times the batsman was not out.
-    not_out = inngs - data_frame[data_frame.player_out == batsman].shape[0]
-
-    # Get the number of times the batsman was awarded the Man of the Match.
-    mom = data_frame[data_frame.Player_of_Match ==
-                     batsman].drop_duplicates('ID', keep='first').shape[0]
+    # Get the number of times awarded Man of the Match
+    mom = data_frame[data_frame.Player_of_Match == batsman].drop_duplicates('ID', keep='first').shape[0]
 
     data = {
         'innings': inngs,
         'runs': runs,
+        'balls': balls,
         'fours': fours,
         'sixes': sixes,
         'avg': avg,
@@ -530,12 +504,12 @@ def bowler_record(bowler, match_df):
     if wicket:
         avg = runs / wicket
     else:
-        avg = np.inf
+        avg = None  # Using None instead of np.inf for no wickets case
 
     if wicket:
         strike_rate = nballs / wicket * 100
     else:
-        strike_rate = np.nan
+        strike_rate = None  # Using None instead of np.nan
 
     group_by_df = match_df.groupby('ID').sum()
     three_wicket_plus = group_by_df[(group_by_df.isBowlerWicket >= 3)].shape[0]
@@ -546,7 +520,7 @@ def bowler_record(bowler, match_df):
 
         best_figure = f'{best_wicket[0][0]}/{best_wicket[0][1]}'
     else:
-        best_figure = np.nan
+        best_figure = None  # Using None instead of np.nan
     mom = match_df[match_df.Player_of_Match == bowler].drop_duplicates(
         'ID', keep='first').shape[0]
     data = {

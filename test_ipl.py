@@ -140,6 +140,67 @@ class IPLFunctionsTests(unittest.TestCase):
         self.assertAlmostEqual(decoded['float'], 3.14)
         self.assertEqual(decoded['array'], [1, 2, 3])
 
+    def test_get_all_players(self):
+        """Test getting all unique players from both batting and bowling data"""
+        batsmen = set(ipl.batter_data['batter'].unique())
+        bowlers = set(ipl.bowler_data['bowler'].unique())
+        all_players = sorted(list(batsmen.union(bowlers)))
+        
+        # Verify we have players in the dataset
+        self.assertGreater(len(all_players), 0)
+        
+        # Verify some known players are in the list (using actual format from dataset)
+        known_players = ['MS Dhoni', 'V Kohli', 'RG Sharma']  # Names as they appear in dataset
+        for player in known_players:
+            self.assertIn(player, all_players)
+
+    def test_player_name_search(self):
+        """Test searching for players by partial name"""
+        # Test with a common prefix
+        search_term = 'Vir'
+        batsmen = set(ipl.batter_data['batter'].unique())
+        bowlers = set(ipl.bowler_data['bowler'].unique())
+        all_players = sorted(list(batsmen.union(bowlers)))
+        
+        matching_players = [p for p in all_players if search_term.lower() in p.lower()]
+        
+        # Should find Virat Kohli
+        self.assertTrue(any('Virat' in player for player in matching_players))
+        
+        # Test with empty search
+        empty_search = ''
+        empty_results = [p for p in all_players if empty_search.lower() in p.lower()]
+        self.assertEqual(len(empty_results), len(all_players))
+        
+        # Test with non-existent player
+        nonexistent = 'xyzabc123'
+        no_results = [p for p in all_players if nonexistent.lower() in p.lower()]
+        self.assertEqual(len(no_results), 0)
+
+    def test_player_statistics_consistency(self):
+        """Test consistency between batting and bowling statistics"""
+        # Test for players known to both bat and bowl
+        all_rounders = ['RA Jadeja', 'HH Pandya']  # Known all-rounders
+        
+        for player in all_rounders:
+            # Get batting stats
+            batting_data = ipl.batter_data[ipl.batter_data['batter'] == player]
+            batting_stats = ipl.batsman_record(player, batting_data)
+            
+            # Get bowling stats
+            bowling_data = ipl.bowler_data[ipl.bowler_data['bowler'] == player]
+            bowling_stats = ipl.bowler_record(player, bowling_data)
+            
+            # Verify both batting and bowling stats exist
+            self.assertIsInstance(batting_stats, dict)
+            self.assertIsInstance(bowling_stats, dict)
+            
+            # Verify basic stats are present and valid
+            self.assertIn('innings', batting_stats)
+            self.assertIn('innings', bowling_stats)
+            self.assertGreaterEqual(batting_stats['innings'], 0)
+            self.assertGreaterEqual(bowling_stats['innings'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

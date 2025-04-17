@@ -18,6 +18,7 @@ Routes:
     the complete batting record of the batsman.
 - '/api/bowling-record': Takes a bowler name as a parameter and
     returns the complete bowling record of the bowler.
+- '/api/player-suggestions': Takes a search query and returns matching player names.
 """
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, session
@@ -450,6 +451,31 @@ def bowling_record():
         response = ipl.bowler_api(bowler)
         return response
     # Redirect to the login page if the user is not logged in
+    return redirect(url_for('login'))
+
+
+# Returns player suggestions based on search query
+@app.route('/api/player-suggestions')
+def player_suggestions():
+    """
+    This function takes a search query and returns matching player names
+    """
+    if 'user_id' in session:
+        query = request.args.get('query', '').lower()
+        if not query or len(query) < 2:
+            return jsonify(result=[], error=None)
+            
+        # Get unique players from both batting and bowling data
+        batsmen = set(ipl.batter_data['batter'].unique())
+        bowlers = set(ipl.bowler_data['bowler'].unique())
+        all_players = sorted(list(batsmen.union(bowlers)))
+        
+        # Filter players based on query
+        suggestions = [player for player in all_players 
+                      if query in player.lower() 
+                      or query in player.replace(' ', '').lower()]
+        return jsonify(result=suggestions[:10], error=None)
+        
     return redirect(url_for('login'))
 
 

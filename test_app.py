@@ -147,9 +147,11 @@ class IPLAPITests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertIn('result', data)
-        # Parse the JSON string to object
-        result_data = json.loads(data['result'])
+        # The result is already a parsed dictionary, no need to parse it again
+        result_data = data['result']
         self.assertIn('Chennai Super Kings', result_data)
+        self.assertIn('overall', result_data['Chennai Super Kings'])
+        self.assertIn('against', result_data['Chennai Super Kings'])
         self.assertIsNone(data['error'])
 
     # API Endpoint Tests - Players
@@ -177,6 +179,90 @@ class IPLAPITests(unittest.TestCase):
         self.assertIn('RA Jadeja', result_data)
         self.assertIsNone(data['error'])
 
+    def test_player_suggestions(self):
+        """Test the player suggestions API endpoint"""
+        self.login()
+        response = self.app.get('/api/player-suggestions?query=Vir')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertIn('result', data)
+        self.assertIsInstance(data['result'], list)
+        # Should find players with 'Vir' in their name (e.g., 'V Kohli', 'Virat Singh')
+        self.assertTrue(any('V' in player for player in data['result']))
+        self.assertIsNone(data['error'])
+
+    def test_player_suggestions_empty_query(self):
+        """Test player suggestions API endpoint with empty query"""
+        self.login()
+        response = self.app.get('/api/player-suggestions?query=')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertIn('result', data)
+        self.assertIsInstance(data['result'], list)
+        self.assertEqual(len(data['result']), 0)
+        self.assertIsNone(data['error'])
+
+    def test_player_suggestions_short_query(self):
+        """Test player suggestions API endpoint with short query"""
+        self.login()
+        response = self.app.get('/api/player-suggestions?query=A')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertIn('result', data)
+        self.assertIsInstance(data['result'], list)
+        self.assertEqual(len(data['result']), 0)
+        self.assertIsNone(data['error'])
+
+    def test_batsman_record_detailed(self):
+        """Test the batsman_record API endpoint with detailed stats verification"""
+        self.login()
+        response = self.app.get('/api/batsman-record?batsman=Virat%20Kohli')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertIn('result', data)
+        result_data = json.loads(data['result'])
+        player_stats = result_data['Virat Kohli']['all']
+        
+        # Verify all required statistics are present
+        required_stats = ['innings', 'runs', 'fours', 'sixes', 'avg', 
+                         'strike_rate', 'fifties', 'hundreds', 'highest_score', 
+                         'not_out', 'man_of_the_match']
+        for stat in required_stats:
+            self.assertIn(stat, player_stats)
+            
+        # Verify data types and ranges
+        self.assertIsInstance(player_stats['innings'], (int, float))
+        self.assertIsInstance(player_stats['runs'], (int, float))
+        self.assertGreaterEqual(player_stats['runs'], 0)
+        self.assertIsInstance(player_stats['avg'], (int, float, type(None)))
+        if player_stats['avg'] is not None:
+            self.assertGreaterEqual(player_stats['avg'], 0)
+
+    def test_bowling_record_detailed(self):
+        """Test the bowling_record API endpoint with detailed stats verification"""
+        self.login()
+        response = self.app.get('/api/bowling-record?bowler=Jasprit%20Bumrah')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertIn('result', data)
+        result_data = json.loads(data['result'])
+        player_stats = result_data['Jasprit Bumrah']['all']
+        
+        # Verify all required statistics are present
+        required_stats = ['innings', 'wicket', 'economy', 'avg', 'strike_rate',
+                         'best_figure', '3+W', 'man_of_the_match']
+        for stat in required_stats:
+            self.assertIn(stat, player_stats)
+            
+        # Verify data types and ranges
+        self.assertIsInstance(player_stats['innings'], (int, float))
+        self.assertIsInstance(player_stats['wicket'], (int, float))
+        self.assertGreaterEqual(player_stats['wicket'], 0)
+        self.assertIsInstance(player_stats['economy'], (int, float))
+        self.assertGreaterEqual(player_stats['economy'], 0)
+        self.assertIsInstance(player_stats['3+W'], (int, float))
+        self.assertGreaterEqual(player_stats['3+W'], 0)
+
     # Dashboard Routes Tests
     def test_dashboard_authenticated(self):
         """Test access to dashboard when authenticated"""
@@ -195,7 +281,9 @@ class IPLAPITests(unittest.TestCase):
         self.login()
         response = self.app.get('/teams_dashboard')
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Teams', response.data)
+        # Look for Team Statistics which is the actual heading used
+        self.assertIn(b'Team Statistics', response.data)
+        self.assertIn(b'Select a Team', response.data)
 
     def test_head_to_head_authenticated(self):
         """Test access to head to head comparison when authenticated"""

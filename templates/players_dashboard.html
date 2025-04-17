@@ -4,30 +4,237 @@
 
 {% block content %}
 <div class="container mt-5">
-  <h1 class="mb-4">IPL Player Statistics</h1>
-  <p class="lead">Explore detailed batting and bowling stats of IPL players across all seasons.</p>
-  <!-- Example table, replace with dynamic content as needed -->
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Player Name</th>
-        <th>Team</th>
-        <th>Matches</th>
-        <th>Runs</th>
-        <th>Wickets</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Example row -->
-      <tr>
-        <td>Virat Kohli</td>
-        <td>RCB</td>
-        <td>223</td>
-        <td>7263</td>
-        <td>4</td>
-      </tr>
-      <!-- Add more rows dynamically -->
-    </tbody>
-  </table>
+    <h1 class="mb-4">IPL Player Statistics</h1>
+    <p class="lead">Explore detailed batting and bowling stats of IPL players across all seasons.</p>
+    
+    <div class="row mb-4">
+        <div class="col">
+            <div class="search-container">
+                <div class="input-group">
+                    <input type="text" 
+                           id="playerSearch" 
+                           class="form-control" 
+                           placeholder="Search for a player..." 
+                           autocomplete="off">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button" onclick="searchPlayer()">Search</button>
+                    </div>
+                </div>
+                <div id="suggestions" class="suggestions-box d-none">
+                    <!-- Suggestions will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="playerStats" class="d-none">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Batting Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <tbody>
+                                <tr><td>Innings</td><td id="battingInnings">-</td></tr>
+                                <tr><td>Runs</td><td id="totalRuns">-</td></tr>
+                                <tr><td>Average</td><td id="battingAverage">-</td></tr>
+                                <tr><td>Strike Rate</td><td id="strikeRate">-</td></tr>
+                                <tr><td>Fifties</td><td id="fifties">-</td></tr>
+                                <tr><td>Hundreds</td><td id="hundreds">-</td></tr>
+                                <tr><td>Highest Score</td><td id="highestScore">-</td></tr>
+                                <tr><td>Not Outs</td><td id="notOuts">-</td></tr>
+                                <tr><td>Fours</td><td id="fours">-</td></tr>
+                                <tr><td>Sixes</td><td id="sixes">-</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Bowling Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <tbody>
+                                <tr><td>Innings</td><td id="bowlingInnings">-</td></tr>
+                                <tr><td>Wickets</td><td id="wickets">-</td></tr>
+                                <tr><td>Economy</td><td id="economy">-</td></tr>
+                                <tr><td>Average</td><td id="bowlingAverage">-</td></tr>
+                                <tr><td>Strike Rate</td><td id="bowlingStrikeRate">-</td></tr>
+                                <tr><td>Best Figures</td><td id="bestFigures">-</td></tr>
+                                <tr><td>3+ Wickets</td><td id="threeWickets">-</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="errorMessage" class="alert alert-danger d-none">
+        Player not found or an error occurred while fetching data.
+    </div>
 </div>
+
+<style>
+.search-container {
+    position: relative;
+}
+
+.suggestions-box {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.suggestion-item:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let debounceTimeout;
+
+document.getElementById('playerSearch').addEventListener('input', function(e) {
+    clearTimeout(debounceTimeout);
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+        document.getElementById('suggestions').classList.add('d-none');
+        return;
+    }
+    
+    debounceTimeout = setTimeout(() => {
+        fetch(`/api/player-suggestions?query=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                const suggestionsBox = document.getElementById('suggestions');
+                if (data.result && data.result.length > 0) {
+                    suggestionsBox.innerHTML = data.result
+                        .map(player => `<div class="suggestion-item" onclick="selectPlayer('${player}')">${player}</div>`)
+                        .join('');
+                    suggestionsBox.classList.remove('d-none');
+                } else {
+                    suggestionsBox.classList.add('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching suggestions:', error);
+                document.getElementById('errorMessage').textContent = 'Error fetching player suggestions.';
+                document.getElementById('errorMessage').classList.remove('d-none');
+            });
+    }, 300);
+});
+
+// Close suggestions when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.search-container')) {
+        document.getElementById('suggestions').classList.add('d-none');
+    }
+});
+
+function selectPlayer(playerName) {
+    document.getElementById('playerSearch').value = playerName;
+    document.getElementById('suggestions').classList.add('d-none');
+    searchPlayer();
+}
+
+function searchPlayer() {
+    const playerName = document.getElementById('playerSearch').value.trim();
+    if (!playerName) return;
+
+    // Reset previous data
+    document.getElementById('playerStats').classList.add('d-none');
+    document.getElementById('errorMessage').classList.add('d-none');
+
+    let hasData = false;
+
+    // Fetch batting statistics
+    fetch(`/api/batsman-record?batsman=${encodeURIComponent(playerName)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error || !data.result) {
+                console.log('No batting data found');
+            } else {
+                const stats = JSON.parse(data.result)[playerName].all;
+                if (stats) {
+                    hasData = true;
+                    document.getElementById('battingInnings').textContent = stats.innings || '-';
+                    document.getElementById('totalRuns').textContent = stats.runs || '-';
+                    document.getElementById('battingAverage').textContent = stats.avg ? stats.avg.toFixed(2) : '-';
+                    document.getElementById('strikeRate').textContent = stats.strike_rate ? stats.strike_rate.toFixed(2) : '-';
+                    document.getElementById('fifties').textContent = stats.fifties || '-';
+                    document.getElementById('hundreds').textContent = stats.hundreds || '-';
+                    document.getElementById('highestScore').textContent = stats.highest_score || '-';
+                    document.getElementById('notOuts').textContent = stats.not_out || '-';
+                    document.getElementById('fours').textContent = stats.fours || '-';
+                    document.getElementById('sixes').textContent = stats.sixes || '-';
+                }
+            }
+        })
+        .catch(error => console.error('Error fetching batting stats:', error));
+
+    // Fetch bowling statistics
+    fetch(`/api/bowling-record?bowler=${encodeURIComponent(playerName)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error || !data.result) {
+                console.log('No bowling data found');
+            } else {
+                const stats = JSON.parse(data.result)[playerName].all;
+                if (stats) {
+                    hasData = true;
+                    document.getElementById('bowlingInnings').textContent = stats.innings || '-';
+                    document.getElementById('wickets').textContent = stats.wicket || '-';
+                    document.getElementById('economy').textContent = stats.economy ? stats.economy.toFixed(2) : '-';
+                    document.getElementById('bowlingAverage').textContent = stats.avg ? stats.avg.toFixed(2) : '-';
+                    document.getElementById('bowlingStrikeRate').textContent = stats.strike_rate ? stats.strike_rate.toFixed(2) : '-';
+                    document.getElementById('bestFigures').textContent = stats.best_figure || '-';
+                    document.getElementById('threeWickets').textContent = stats['3+W'] || '-';
+                }
+            }
+            
+            // Show stats or error message
+            if (hasData) {
+                document.getElementById('playerStats').classList.remove('d-none');
+            } else {
+                document.getElementById('errorMessage').textContent = 'No statistics found for this player.';
+                document.getElementById('errorMessage').classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching bowling stats:', error);
+            document.getElementById('errorMessage').textContent = 'Error fetching player statistics.';
+            document.getElementById('errorMessage').classList.remove('d-none');
+        });
+}
+
+// Add event listener for Enter key in search input
+document.getElementById('playerSearch').addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+        searchPlayer();
+    }
+});
+</script>
 {% endblock %}
